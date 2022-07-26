@@ -44,13 +44,13 @@ def main():
     config, *_ = model.get_model()
 
     config["preprocess"] = False  # we use raw data to generate preprocess data
-    config["val_workers"] = 32
-    config["workers"] = 32
+    config["val_workers"] = 16
+    config["workers"] = 16
     config['cross_dist'] = 6
     config['cross_angle'] = 0.5 * np.pi
 
     os.makedirs(os.path.dirname(config['preprocess_train']),exist_ok=True)
-    config["train_split"] = 'dataset/forecasting_sample'
+    config["train_split"] = 'dataset/forecasting_sample/data'
     # val(config)
     # test(config)
     # train(config)
@@ -70,9 +70,10 @@ def train(config):
         drop_last=False,
     )
 
-    stores = [None for x in range(205942)]
+    stores = [None for x in range(647)]
     t = time.time()
     for i, data in enumerate(tqdm(train_loader)):
+        print(time.time())
         data = dict(data)
         for j in range(len(data["idx"])):
             store = dict()
