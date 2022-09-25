@@ -110,7 +110,7 @@ def pipe_server():
                 #         veh_list.append([obj['time_stamp'], obj_info['obj_id'], 'OTHERS', obj_info['rel_pos_lat'], obj_info['rel_pos_long'], 'HMC',obj_info['heading_angle']])
                 #
                 print(cur_time)
-                data_temp = pd.DataFrame(list, columns=['TIMESTAMP','TRACK_ID','OBJECT_TYPE','X','Y','CITY_NAME'])
+                # data_temp = pd.DataFrame(list, columns=['TIMESTAMP','TRACK_ID','OBJECT_TYPE','X','Y','CITY_NAME'])
                 file_name = 'saving/objs/' + str(cur_time) + '.pkl'
                 with open(file_name, 'wb') as f:
                     pickle.dump(obj, f)
