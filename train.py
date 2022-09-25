@@ -50,9 +50,10 @@ parser.add_argument(
 def main():
     # Import all settings for experiment.
     args = parser.parse_args()
+    args.model = 'lanegcn'
     model = import_module(args.model)
     config, Dataset, collate_fn, net, loss, post_process, opt = model.get_model()
-
+    config['batch_size'] = 1
     if args.resume or args.weight:
         ckpt_path = args.resume or args.weight
         if not os.path.isabs(ckpt_path):
@@ -148,7 +149,6 @@ def train(epoch, config, train_loader, net, loss, post_process, opt, val_loader=
         opt.zero_grad()
         loss_out["loss"].backward()
         lr = opt.step(epoch)
-
         num_iters = int(np.round(epoch * num_batches))
         if num_iters % save_iters == 0 or epoch >= config["num_epochs"]:
             save_ckpt(net, opt, config["save_dir"], epoch)
