@@ -50,9 +50,9 @@ def pipe_server():
     #endregion
     pipe = Pipes(IN_PIPE_NAME, OUT_PIPE_NAME, MAX_PIPE_BUFFER_SIZE, connect_first=False)
     print("pipe server")
-    veh_list = []
 
     while True:
+        veh_list = []
         status, resp = pipe.read_pipe(pipe_buffer_size)
         if status==0:
             print("Status:", status)
@@ -65,6 +65,7 @@ def pipe_server():
 
             elif message_type==MESSAGE_OBJ:
                 print("OBJ received")
+                print(time.time())
                 num_obj = int(len(resp)/44)
                 print(num_obj)
 
@@ -101,16 +102,13 @@ def pipe_server():
                         obj_info['obj_width'] = struct.unpack('<f', data[36:40])[0]
                         obj_info['obj_length'] = struct.unpack('<f', data[40:44])[0]
                         obj['obj_infos'].append(obj_info)
-                cur_time = obj['time_stamp']
-                # print(['asdfasdfasdfasdfasdf', cur_time, veh_list[0]])
-                # if len(veh_list) > 0:
-                #     if cur_time > veh_list[0]:
-                #         veh_list = []
-                #     elif cur_time == veh_list:
-                #         veh_list.append([obj['time_stamp'], obj_info['obj_id'], 'OTHERS', obj_info['rel_pos_lat'], obj_info['rel_pos_long'], 'HMC',obj_info['heading_angle']])
-                #
-                print(cur_time)
-                # data_temp = pd.DataFrame(list, columns=['TIMESTAMP','TRACK_ID','OBJECT_TYPE','X','Y','CITY_NAME'])
+                    cur_time = obj['time_stamp']
+                    id_mask = '000-0000-0000'
+                    id = id_mask[:len(id_mask)-len(str(obj_info['obj_id']))] + str(obj_info['obj_id'])
+                    print(veh_list)
+                    veh_list.append([veh_list[0][0], id, 'OTHERS', obj_info['rel_pos_lat'], obj_info['rel_pos_long'], 'HMC',obj_info['heading_angle']])
+                data_temp = pd.DataFrame(list, columns=['TIMESTAMP','TRACK_ID','OBJECT_TYPE','X','Y','CITY_NAME'])
+                print(data_temp)
                 file_name = 'saving/objs/' + str(cur_time) + '.pkl'
                 with open(file_name, 'wb') as f:
                     pickle.dump(obj, f)
@@ -127,7 +125,6 @@ def pipe_server():
                 print("EGO received")
 
                 ego = dict()
-
                 ego['time_stamp'] = int.from_bytes(resp[0:8], 'little', signed=False)
                 ego['speed_mps'] = struct.unpack('<d', resp[8:16])[0]
                 ego['lat_deg'] = struct.unpack('<d', resp[16:24])[0]
@@ -156,6 +153,8 @@ def pipe_server():
                 #     f.write(resp)
 
                 print("Map received")
+                print(time.time())
+
                 num_lane_links = int(len(resp)/9024)
                 for i in range(num_lane_links):
                     data = resp[9024*i:9024*i+9024]
@@ -201,7 +200,6 @@ def pipe_server():
 
                 # Set message type to OK
                 message_type = MESSAGE_OK
-
 
     print("finished now")
 
