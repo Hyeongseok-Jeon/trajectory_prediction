@@ -101,13 +101,13 @@ def pipe_server():
                         obj_info['obj_width'] = struct.unpack('<f', data[36:40])[0]
                         obj_info['obj_length'] = struct.unpack('<f', data[40:44])[0]
                         obj['obj_infos'].append(obj_info)
-                cur_time = obj['time_stamp']
                 # print(['asdfasdfasdfasdfasdf', cur_time, veh_list[0]])
                 if len(veh_list) > 0:
+                    cur_time = veh_list[0][0]
                     id_mask = '000-0000-0000'
                     obj_id = id_mask[:-len(str(obj_info['obj_id']))] + str(obj_info['obj_id'])
                     ##TODO : 좌표 변환
-                    veh_list.append([veh_list[0][0], obj_id, 'OTHERS', obj_info['rel_pos_lat'], obj_info['rel_pos_long'], 'HMC',obj_info['heading_angle']])
+                    veh_list.append([cur_time, obj_id, 'OTHERS', obj_info['rel_pos_lat'], obj_info['rel_pos_long'], 'HMC',obj_info['heading_angle']])
                 data_temp = pd.DataFrame(veh_list, columns=['TIMESTAMP','TRACK_ID','OBJECT_TYPE','X','Y','CITY_NAME','HEADING'])
                 print(data_temp)
                 file_name = 'saving/objs/' + str(cur_time) + '.pkl'
