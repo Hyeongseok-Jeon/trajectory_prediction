@@ -103,14 +103,13 @@ def pipe_server():
                         obj['obj_infos'].append(obj_info)
                 cur_time = obj['time_stamp']
                 # print(['asdfasdfasdfasdfasdf', cur_time, veh_list[0]])
-                # if len(veh_list) > 0:
-                #     if cur_time > veh_list[0]:
-                #         veh_list = []
-                #     elif cur_time == veh_list:
-                #         veh_list.append([obj['time_stamp'], obj_info['obj_id'], 'OTHERS', obj_info['rel_pos_lat'], obj_info['rel_pos_long'], 'HMC',obj_info['heading_angle']])
-                #
-                print(cur_time)
-                # data_temp = pd.DataFrame(list, columns=['TIMESTAMP','TRACK_ID','OBJECT_TYPE','X','Y','CITY_NAME'])
+                if len(veh_list) > 0:
+                    id_mask = '000-0000-0000'
+                    obj_id = id_mask[:-len(str(obj_info['obj_id']))] + str(obj_info['obj_id'])
+                    ##TODO : 좌표 변환
+                    veh_list.append([veh_list[0][0], obj_id, 'OTHERS', obj_info['rel_pos_lat'], obj_info['rel_pos_long'], 'HMC',obj_info['heading_angle']])
+                data_temp = pd.DataFrame(veh_list, columns=['TIMESTAMP','TRACK_ID','OBJECT_TYPE','X','Y','CITY_NAME','HEADING'])
+                print(data_temp)
                 file_name = 'saving/objs/' + str(cur_time) + '.pkl'
                 with open(file_name, 'wb') as f:
                     pickle.dump(obj, f)
@@ -136,8 +135,8 @@ def pipe_server():
                 ego['X'], ego['Y'] = myProj(ego['long_deg'], ego['lat_deg'])
                 if len(veh_list)==0:
                     veh_list.append([ego['time_stamp'], '000-0000-0000', 'AV', ego['X'], ego['Y'], 'HMC',ego['heading']])
-                print(veh_list)
                 cur_time = ego['time_stamp']
+
                 file_name = 'saving/ego/' + str(cur_time) + '.pkl'
                 with open(file_name, 'wb') as f:
                     pickle.dump(ego, f)
