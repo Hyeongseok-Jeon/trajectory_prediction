@@ -39,6 +39,11 @@ parser.add_argument(
     "-d", "--data", default="HMC", type=str, metavar="DATA", help="data source"
 )
 
+parser.add_argument(
+    "-p", "--port", default=4538, type=int, metavar="DATA", help="data source"
+)
+
+
 def main():
     # Import all settings for experiment.
     args = parser.parse_args()

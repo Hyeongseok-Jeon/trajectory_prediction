@@ -49,6 +49,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent / "map_files"
 # known City IDs from newest to oldest
 MIAMI_ID = 10316
 PITTSBURGH_ID = 10314
+HMC_ID = 10317
 
 # Any numeric type
 Number = Union[int, float]
@@ -65,7 +66,7 @@ class ArgoverseMap:
         """Initialize the Argoverse Map."""
         self.root = root
 
-        self.city_name_to_city_id_dict = {"PIT": PITTSBURGH_ID, "MIA": MIAMI_ID}
+        self.city_name_to_city_id_dict = {"PIT": PITTSBURGH_ID, "MIA": MIAMI_ID, "HMC": HMC_ID}
         self.render_window_radius = 150
         self.im_scale_factor = 50
 

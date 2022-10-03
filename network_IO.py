@@ -117,8 +117,15 @@ def map_conversion():
         SubElement(way, 'tag').attrib = {"k": "has_traffic_control", "v": "False"}
         SubElement(way, 'tag').attrib = {"k": "turn_direction", "v": "NONE"}
         SubElement(way, 'tag').attrib = {"k": "is_intersection", "v": "False"}
-        SubElement(way, 'tag').attrib = {"k": "l_neighbor_id", "v": "None"}
-        SubElement(way, 'tag').attrib = {"k": "r_neighbor_id", "v": "None"}
+        if data['left_id'] == 1:
+            SubElement(way, 'tag').attrib = {"k": "l_neighbor_id", "v": "NONE"}
+        else:
+            SubElement(way, 'tag').attrib = {"k": "l_neighbor_id", "v": data['left_id']}
+        if data['right_id'] == 1:
+            SubElement(way, 'tag').attrib = {"k": "r_neighbor_id", "v": "NONE"}
+        else:
+            SubElement(way, 'tag').attrib = {"k": "r_neighbor_id", "v": data['right_id']}
+
         x = data['points_x_utm'][:data['points_count']]
         y = data['points_y_utm'][:data['points_count']]
         points_in_link = np.array([x, y]).T
