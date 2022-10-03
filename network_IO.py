@@ -27,14 +27,23 @@ parser.add_argument("--port", default=52162)
 config = parser.parse_args()
 myProj = Proj(proj='utm', zone=52, ellps='WGS84', datum='WGS84', units='m')
 
-def update_mem(mem, new):
+def update_mem(mem, new, data_count):
     time_list = mem['TIMESTAMP'].values.tolist()
     time_list_sort = []
     [time_list_sort.append(x) for x in time_list if x not in time_list_sort]
     print(len(time_list_sort))
-    if len(time_list_sort) == 80:
+    if len(time_list_sort) == 50:
         print('save')
-        mem.to_csv('D://research//trajectory_prediction//dataset', index_label=Falsearer)
+        cls_rand = np.random.rand()
+        if cls_rand < 0.15:
+            cls = 'test_obs'
+        elif cls_rand < 0.3:
+            cls = 'val'
+        else:
+            cls = 'train'
+        print(mem)
+        data_count = data_count + 1
+        mem.to_csv('D://research//trajectory_prediction//dataset//HMC//'+cls+'//data//'+str(data_count)+'.csv', index=False)
         raw_data = {'TIMESTAMP': [],
                     'TRACK_ID': [],
                     'OBJECT_TYPE': [],
@@ -47,8 +56,7 @@ def update_mem(mem, new):
         new_mem = pd.concat([mem, new])
 
 
-
-    return new_mem
+    return new_mem, data_count
 
 
 def pipe_server():
@@ -70,8 +78,7 @@ def pipe_server():
                 'CITY_NAME': [],
                 'HEADING': []}
     mem = DataFrame(raw_data)
-    print(mem)
-
+    data_count = 0
     while True:
         status, resp = pipe.read_pipe(pipe_buffer_size)
         if status == 0:
@@ -129,12 +136,12 @@ def pipe_server():
                         ##TODO : 좌표 변환
                         veh_list.append([cur_time, obj_id, 'OTHERS', obj_info['rel_pos_lat'], obj_info['rel_pos_long'], 'HMC', obj_info['heading_angle']])
                     data_temp = pd.DataFrame(veh_list, columns=['TIMESTAMP', 'TRACK_ID', 'OBJECT_TYPE', 'X', 'Y', 'CITY_NAME', 'HEADING'])
-                mem = update_mem(mem, data_temp)
-                print(mem)
-
-                file_name = 'saving/objs/' + str(cur_time) + '.pkl'
-                with open(file_name, 'wb') as f:
-                    pickle.dump(obj, f)
+                mem, data_count = update_mem(mem, data_temp, data_count)
+                print(data_count)
+                #
+                # file_name = 'saving/objs/' + str(cur_time) + '.pkl'
+                # with open(file_name, 'wb') as f:
+                #     pickle.dump(obj, f)
 
                 # Send OK Message
                 msg.id = MESSAGE_OK
@@ -158,8 +165,8 @@ def pipe_server():
                 ego['heading'] = struct.unpack('<f', resp[32:36])[0]
                 ego['X'], ego['Y'] = myProj(ego['long_deg'], ego['lat_deg'])
                 if len(veh_list) == 0:
-                    veh_list.append([ego['time_stamp'], '000-0000-0000', 'AV', ego['X'], ego['Y'], 'HMC', ego['heading']])
-                cur_time = ego['time_stamp']
+                    veh_list.append([ego['time_stamp']* 0.001, '000-0000-0000', 'AV', ego['X'], ego['Y'], 'HMC', ego['heading']])
+                cur_time = ego['time_stamp'] * 0.001
 
                 file_name = 'saving/ego/' + str(cur_time) + '.pkl'
                 with open(file_name, 'wb') as f:
@@ -180,6 +187,8 @@ def pipe_server():
 
                 print("Map received")
                 num_lane_links = int(len(resp) / 9024)
+                print(len(resp))
+                print(num_lane_links)
                 for i in range(num_lane_links):
                     data = resp[9024 * i:9024 * i + 9024]
                     lane_link = dict()
@@ -229,8 +238,3 @@ def pipe_server():
 
 
 pipe_server()
-
-## 질문사항
-## points_count 갯수 이상으로 데이터가 나올수 있는지 (buffer초기화가 안되서 이전거 물고 있던 것 같기도)
-## ref lat이랑 ref lng이 모두 동일하게 나오는 것 같은데 이게 맞는지
-##
