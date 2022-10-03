@@ -157,7 +157,7 @@ def map_conversion():
     ground_height[:] = np.nan
     city_se2 = np.array([[1, 0, -xmin], [0, 1, -ymin], [0, 0, 1]])
 
-    map = 'Suburb_02'
+    map = 'HMC'
     map_abbr = 'HMC'
     map_id = '10317'
 
@@ -168,6 +168,14 @@ def map_conversion():
     np.save('dataset/HMC/map_files/' + map_abbr + '_' + map_id + "_driveable_area_mat_2019_05_28.npy", drivable_region)
     np.save('dataset/HMC/map_files/' + map_abbr + '_' + map_id + "_ground_height_mat_2019_05_28.npy", ground_height)
     np.save('dataset/HMC/map_files/' + map_abbr + '_' + map_id + "_halluc_bbox_table.npy", halluc_bbox)
+
+    tree.write('argoverse_api/map_files/pruned_argoverse_' + map_abbr + '_' + map_id + '_vector_map.xml', encoding='utf-8', xml_declaration=True)
+    with open('argoverse_api/map_files/' + map_abbr + '_' + map_id + "_tableidx_to_laneid_map.json", "w") as json_file:
+        json.dump(lane_id_map, json_file)
+    np.save('argoverse_api/map_files/' + map_abbr + '_' + map_id + "_npyimage_to_city_se2_2019_05_28.npy", city_se2)
+    np.save('argoverse_api/map_files/' + map_abbr + '_' + map_id + "_driveable_area_mat_2019_05_28.npy", drivable_region)
+    np.save('argoverse_api/map_files/' + map_abbr + '_' + map_id + "_ground_height_mat_2019_05_28.npy", ground_height)
+    np.save('argoverse_api/map_files/' + map_abbr + '_' + map_id + "_halluc_bbox_table.npy", halluc_bbox)
 
 
 def pipe_server():

@@ -35,6 +35,9 @@ parser.add_argument(
     "-m", "--model", default="lanegcn", type=str, metavar="MODEL", help="model name"
 )
 
+parser.add_argument(
+    "-d", "--data", default="HMC", type=str, metavar="DATA", help="data source"
+)
 
 def main():
     # Import all settings for experiment.
@@ -50,12 +53,17 @@ def main():
     config['cross_angle'] = 0.5 * np.pi
 
     os.makedirs(os.path.dirname(config['preprocess_train']),exist_ok=True)
-    config["train_split"] = 'dataset/forecasting_sample/data'
-    # val(config)
-    # test(config)
-    # train(config)
+    if args.data == 'HMC':
+        config["train_split"] = os.path.join(root_path, "dataset/HMC/train/data")
+        config["val_split"] = os.path.join(root_path, "dataset/HMC/val/data")
+        config["test_split"] = os.path.join(root_path, "dataset/HMC/test_obs/data")
+    elif args.data == 'Argoverse':
+        config["train_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
+        config["val_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
+        config["test_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
+    val(config)
+    test(config)
     train(config)
-
 
 def train(config):
     # Data loader for training set

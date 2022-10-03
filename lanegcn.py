@@ -56,10 +56,10 @@ config["val_workers"] = config["workers"]
 """Dataset"""
 # Raw Dataset
 config["train_split"] = os.path.join(
-    root_path, "dataset/train/data"
+    root_path, "dataset/Argoverse/train/data"
 )
-config["val_split"] = os.path.join(root_path, "dataset/val/data")
-config["test_split"] = os.path.join(root_path, "dataset/test_obs/data")
+config["val_split"] = os.path.join(root_path, "dataset/Argoverse/val/data")
+config["test_split"] = os.path.join(root_path, "dataset/Argoverse/test_obs/data")
 
 # Preprocessed Dataset
 config["preprocess"] = True # whether use preprocess or not
