@@ -57,15 +57,18 @@ def main():
     config['cross_dist'] = 6
     config['cross_angle'] = 0.5 * np.pi
 
-    os.makedirs(os.path.dirname(config['preprocess_train']),exist_ok=True)
     if args.data == 'HMC':
         config["train_split"] = os.path.join(root_path, "dataset/HMC/train/data")
         config["val_split"] = os.path.join(root_path, "dataset/HMC/val/data")
         config["test_split"] = os.path.join(root_path, "dataset/HMC/test_obs/data")
+        config['preprocess_train'] = os.path.join(root_path, "dataset/HMC/preprocess")
     elif args.data == 'Argoverse':
         config["train_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
         config["val_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
         config["test_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
+        config['preprocess_train'] = os.path.join(root_path, "dataset/Argoverse/preprocess")
+
+    os.makedirs(os.path.dirname(config['preprocess_train']),exist_ok=True)
     val(config)
     test(config)
     train(config)
