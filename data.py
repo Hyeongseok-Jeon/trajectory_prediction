@@ -164,7 +164,7 @@ class ArgoDataset(Dataset):
                 continue
 
             gt_pred = np.zeros((30, 2), np.float32)
-            has_pred = np.zeros(30, np.bool)
+            has_pred = np.zeros(30, bool)
             future_mask = np.logical_and(step >= 20, step < 50)
             post_step = step[future_mask] - 20
             post_traj = traj[future_mask]
@@ -202,7 +202,7 @@ class ArgoDataset(Dataset):
         feats = np.asarray(feats, np.float32)
         ctrs = np.asarray(ctrs, np.float32)
         gt_preds = np.asarray(gt_preds, np.float32)
-        has_preds = np.asarray(has_preds, np.bool)
+        has_preds = np.asarray(has_preds, bool)
 
         data['feats'] = feats
         data['ctrs'] = ctrs
@@ -216,9 +216,9 @@ class ArgoDataset(Dataset):
  
     def get_lane_graph(self, data):
         """Get a rectangle area defined by pred_range."""
-        x_min, x_max, y_min, y_max = self.config['pred_range']
+        x_min, x_max, y_min, y_max = config['pred_range']
         radius = max(abs(x_min), abs(x_max)) + max(abs(y_min), abs(y_max))
-        lane_ids = self.am.get_lane_ids_in_xy_bbox(data['orig'][0], data['orig'][1], data['city'], radius)
+        lane_ids = am.get_lane_ids_in_xy_bbox(data['orig'][0], data['orig'][1], data['city'], radius)
         lane_ids = copy.deepcopy(lane_ids)
         
         lanes = dict()

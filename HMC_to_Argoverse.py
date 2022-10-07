@@ -60,12 +60,9 @@ def update_mem(mem, new, data_count):
                 if not(id_list[i] in full_id):
                     full_id.append(id_list[i])
         full_id.remove('000-0000-0000')
-        print(full_id)
         for i in range(len(full_id)):
             data_save = mem.copy()
-            print(data_save)
             for j in range(len(data_save)):
-                print([j, list(data_save['TRACK_ID'])[j], full_id[i]])
                 if list(data_save['TRACK_ID'])[j] == full_id[i]:
                     data_save.iat[j, 2] = 'AGENT'
             data_count = data_count + 1
@@ -95,15 +92,26 @@ def map_conversion():
     root = Element('ArgoverseVectorMap')
     lane_id_map = dict()
     link_list = glob.glob('saving/map/*.pkl')
-    halluc_bbox = np.empty(shape=(len(link_list), 4))
-
+    valid_idx = []
     for i in range(len(link_list)):
         with open(link_list[i], 'rb') as f:
             data = pickle.load(f)
-        if i == 0:
+        if data['prev_ids_count'] == 0 or data['next_ids_count'] == 0:
+            pass
+        else:
+            valid_idx.append(i)
+    link_list = [link_list[valid_idx[i]] for i in range(len(valid_idx))]
+    halluc_bbox = np.empty(shape=(len(link_list), 4))
+
+    init = 0
+    for i in range(len(link_list)):
+        with open(link_list[i], 'rb') as f:
+            data = pickle.load(f)
+        if init == 0:
             x = data['points_x_utm'][:data['points_count']]
             y = data['points_y_utm'][:data['points_count']]
             pt_list = np.array([x,y]).T
+            init = 1
         else:
             x = data['points_x_utm'][:data['points_count']]
             y = data['points_y_utm'][:data['points_count']]
@@ -125,46 +133,43 @@ def map_conversion():
     for i in range(len(link_list)):
         with open(link_list[i], 'rb') as f:
             data = pickle.load(f)
-        if data['prev_ids_count'] == 0 or data['next_ids_count'] == 0:
-            pass
+        cnt = cnt + 1
+        lane_id = data['id']
+        lane_id_map[str(i)] = lane_id
+        way = SubElement(root, 'way', lane_id=str(lane_id))
+        SubElement(way, 'tag').attrib = {"k": "has_traffic_control", "v": "False"}
+        SubElement(way, 'tag').attrib = {"k": "turn_direction", "v": "NONE"}
+        SubElement(way, 'tag').attrib = {"k": "is_intersection", "v": "False"}
+        if data['left_id'] == 1:
+            SubElement(way, 'tag').attrib = {"k": "l_neighbor_id", "v": "None"}
         else:
-            cnt = cnt + 1
-            lane_id = data['id']
-            lane_id_map[str(i)] = lane_id
-            way = SubElement(root, 'way', lane_id=str(lane_id))
-            SubElement(way, 'tag').attrib = {"k": "has_traffic_control", "v": "False"}
-            SubElement(way, 'tag').attrib = {"k": "turn_direction", "v": "NONE"}
-            SubElement(way, 'tag').attrib = {"k": "is_intersection", "v": "False"}
-            if data['left_id'] == 1:
-                SubElement(way, 'tag').attrib = {"k": "l_neighbor_id", "v": "None"}
-            else:
-                SubElement(way, 'tag').attrib = {"k": "l_neighbor_id", "v": str(data['left_id'])}
-            if data['right_id'] == 1:
-                SubElement(way, 'tag').attrib = {"k": "r_neighbor_id", "v": "None"}
-            else:
-                SubElement(way, 'tag').attrib = {"k": "r_neighbor_id", "v": str(data['right_id'])}
+            SubElement(way, 'tag').attrib = {"k": "l_neighbor_id", "v": str(data['left_id'])}
+        if data['right_id'] == 1:
+            SubElement(way, 'tag').attrib = {"k": "r_neighbor_id", "v": "None"}
+        else:
+            SubElement(way, 'tag').attrib = {"k": "r_neighbor_id", "v": str(data['right_id'])}
 
-            x = data['points_x_utm'][:data['points_count']]
-            y = data['points_y_utm'][:data['points_count']]
-            points_in_link = np.array([x, y]).T
-            for j in range(len(points_in_link)):
-                wps_pt = np.array([points_in_link[j][0], points_in_link[j][1]])
-                for z in range(len(wps)):
-                    wps_cand = wps[z]
-                    if wps_cand[0] == wps_pt[0] and wps_cand[1] == wps_pt[1]:
-                        SubElement(way, 'nd').attrib = {"ref": str(z)}
-            if data['prev_ids_count'] == 0:
-                SubElement(way, 'tag').attrib = {"k": "predecessor", "v": "None"}
-            else:
-                for j in range(data['prev_ids_count']):
-                    pred_id = data['prev_id'][j]
-                    SubElement(way, 'tag').attrib = {"k": "predecessor", "v": str(pred_id)}
-            if data['next_ids_count'] == 0:
-                SubElement(way, 'tag').attrib = {"k": "successor", "v": "None"}
-            else:
-                for j in range(data['next_ids_count']):
-                    suc_id = data['next_id'][j]
-                    SubElement(way, 'tag').attrib = {"k": "successor", "v": str(suc_id)}
+        x = data['points_x_utm'][:data['points_count']]
+        y = data['points_y_utm'][:data['points_count']]
+        points_in_link = np.array([x, y]).T
+        for j in range(len(points_in_link)):
+            wps_pt = np.array([points_in_link[j][0], points_in_link[j][1]])
+            for z in range(len(wps)):
+                wps_cand = wps[z]
+                if wps_cand[0] == wps_pt[0] and wps_cand[1] == wps_pt[1]:
+                    SubElement(way, 'nd').attrib = {"ref": str(z)}
+        if data['prev_ids_count'] == 0:
+            SubElement(way, 'tag').attrib = {"k": "predecessor", "v": "None"}
+        else:
+            for j in range(data['prev_ids_count']):
+                pred_id = data['prev_id'][j]
+                SubElement(way, 'tag').attrib = {"k": "predecessor", "v": str(pred_id)}
+        if data['next_ids_count'] == 0:
+            SubElement(way, 'tag').attrib = {"k": "successor", "v": "None"}
+        else:
+            for j in range(data['next_ids_count']):
+                suc_id = data['next_id'][j]
+                SubElement(way, 'tag').attrib = {"k": "successor", "v": str(suc_id)}
 
     indent(root)
     dump(root)

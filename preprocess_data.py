@@ -25,6 +25,7 @@ os.umask(0)
 
 
 root_path = os.path.dirname(os.path.abspath(__file__))
+root_path = ''
 sys.path.insert(0, root_path)
 
 
@@ -134,7 +135,7 @@ def val(config):
     dataset = Dataset(config["val_split"], config, train=False)
     val_loader = DataLoader(
         dataset,
-        batch_size=config["val_batch_size"],
+        batch_size=4,
         num_workers=config["val_workers"],
         shuffle=False,
         collate_fn=collate_fn,
