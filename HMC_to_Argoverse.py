@@ -53,14 +53,6 @@ def update_mem(mem, new, data_count):
     print(len(time_list_sort))
     if len(time_list_sort) == 50:
         print('save')
-        cls_rand = np.random.rand()
-        if cls_rand < 0.15:
-            cls = 'test_obs'
-        elif cls_rand < 0.3:
-            cls = 'val'
-        else:
-            cls = 'train'
-        print(mem)
         id_list = list(mem['TRACK_ID'])
         full_id = []
         for i in range(len(id_list)):
@@ -71,11 +63,19 @@ def update_mem(mem, new, data_count):
         print(full_id)
         for i in range(len(full_id)):
             data_save = mem.copy()
+            print(data_save)
             for j in range(len(data_save)):
-                print([data_save['TRACK_ID'][j], full_id[i]])
-                if data_save['TRACK_ID'][j] == full_id[i]:
-                    data_save['OBJECT_TYPE'][j] = 'AGENT'
+                print([j, list(data_save['TRACK_ID'])[j], full_id[i]])
+                if list(data_save['TRACK_ID'])[j] == full_id[i]:
+                    data_save.iat[j, 2] = 'AGENT'
             data_count = data_count + 1
+            cls_rand = np.random.rand()
+            if cls_rand < 0.15:
+                cls = 'test_obs'
+            elif cls_rand < 0.3:
+                cls = 'val'
+            else:
+                cls = 'train'
             data_save.to_csv('D://research//trajectory_prediction//dataset//HMC//'+cls+'//data//'+str(data_count)+'.csv', index=False)
         raw_data = {'TIMESTAMP': [],
                     'TRACK_ID': [],
