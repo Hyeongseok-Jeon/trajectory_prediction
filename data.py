@@ -216,9 +216,9 @@ class ArgoDataset(Dataset):
  
     def get_lane_graph(self, data):
         """Get a rectangle area defined by pred_range."""
-        x_min, x_max, y_min, y_max = config['pred_range']
+        x_min, x_max, y_min, y_max = self.config['pred_range']
         radius = max(abs(x_min), abs(x_max)) + max(abs(y_min), abs(y_max))
-        lane_ids = am.get_lane_ids_in_xy_bbox(data['orig'][0], data['orig'][1], data['city'], radius)
+        lane_ids = self.am.get_lane_ids_in_xy_bbox(data['orig'][0], data['orig'][1], data['city'], radius)
         lane_ids = copy.deepcopy(lane_ids)
         
         lanes = dict()
@@ -236,17 +236,17 @@ class ArgoDataset(Dataset):
                 lane.centerline = centerline
                 lane.polygon = np.matmul(data['rot'], (polygon[:, :2] - data['orig'].reshape(-1, 2)).T).T
                 lanes[lane_id] = lane
-            
+
         lane_ids = list(lanes.keys())
         ctrs, feats, turn, control, intersect = [], [], [], [], []
         for lane_id in lane_ids:
             lane = lanes[lane_id]
             ctrln = lane.centerline
             num_segs = len(ctrln) - 1
-            
+
             ctrs.append(np.asarray((ctrln[:-1] + ctrln[1:]) / 2.0, np.float32))
             feats.append(np.asarray(ctrln[1:] - ctrln[:-1], np.float32))
-            
+
             x = np.zeros((num_segs, 2), np.float32)
             if lane.turn_direction == 'LEFT':
                 x[:, 0] = 1
@@ -258,21 +258,21 @@ class ArgoDataset(Dataset):
 
             control.append(lane.has_traffic_control * np.ones(num_segs, np.float32))
             intersect.append(lane.is_intersection * np.ones(num_segs, np.float32))
-            
+
         node_idcs = []
         count = 0
         for i, ctr in enumerate(ctrs):
             node_idcs.append(range(count, count + len(ctr)))
             count += len(ctr)
         num_nodes = count
-        
+
         pre, suc = dict(), dict()
         for key in ['u', 'v']:
             pre[key], suc[key] = [], []
         for i, lane_id in enumerate(lane_ids):
             lane = lanes[lane_id]
             idcs = node_idcs[i]
-            
+
             pre['u'] += idcs[1:]
             pre['v'] += idcs[:-1]
             if lane.predecessors is not None:
@@ -281,7 +281,7 @@ class ArgoDataset(Dataset):
                         j = lane_ids.index(nbr_id)
                         pre['u'].append(idcs[0])
                         pre['v'].append(node_idcs[j][-1])
-                    
+
             suc['u'] += idcs[:-1]
             suc['v'] += idcs[1:]
             if lane.successors is not None:

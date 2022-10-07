@@ -135,7 +135,7 @@ def val(config):
     dataset = Dataset(config["val_split"], config, train=False)
     val_loader = DataLoader(
         dataset,
-        batch_size=4,
+        batch_size=config["val_batch_size"],
         num_workers=config["val_workers"],
         shuffle=False,
         collate_fn=collate_fn,
