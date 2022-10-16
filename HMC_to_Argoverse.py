@@ -73,7 +73,8 @@ def update_mem(mem, new, data_count):
                 cls = 'val'
             else:
                 cls = 'train'
-            data_save.to_csv('D://research//trajectory_prediction//dataset//HMC//'+cls+'//data//'+str(data_count)+'.csv', index=False)
+            if data_count > 200:
+                data_save.to_csv('D://research//trajectory_prediction//dataset//HMC//'+cls+'//data//'+str(data_count)+'.csv', index=False)
         raw_data = {'TIMESTAMP': [],
                     'TRACK_ID': [],
                     'OBJECT_TYPE': [],
