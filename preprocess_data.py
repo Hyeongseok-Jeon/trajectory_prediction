@@ -25,7 +25,6 @@ os.umask(0)
 
 
 root_path = os.path.dirname(os.path.abspath(__file__))
-root_path = ''
 sys.path.insert(0, root_path)
 
 
@@ -57,12 +56,13 @@ def main():
     config["workers"] = 16
     config['cross_dist'] = 6
     config['cross_angle'] = 0.5 * np.pi
-
     if args.data == 'HMC':
-        config["train_split"] = os.path.join(root_path, "dataset/HMC/train/data")
-        config["val_split"] = os.path.join(root_path, "dataset/HMC/val/data")
-        config["test_split"] = os.path.join(root_path, "dataset/HMC/test_obs/data")
-        config['preprocess_train'] = os.path.join(root_path, "dataset/HMC/preprocess")
+        config["train_split"] = os.path.join(root_path, "dataset\\HMC\\train\\data")
+        config["val_split"] = os.path.join(root_path, "dataset\\HMC\\val\\data")
+        config["test_split"] = os.path.join(root_path, "dataset\\HMC\\test_obs\\data")
+        config['preprocess_train'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\train_crs_dist6_angle90.p")
+        config['preprocess_val'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\val_crs_dist6_angle90.p")
+        config['preprocess_test'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\test_test.p")
     elif args.data == 'Argoverse':
         config["train_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
         config["val_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
@@ -87,7 +87,7 @@ def train(config):
         drop_last=False,
     )
 
-    stores = [None for x in range(647)]
+    stores = [None for x in range(705)]
     t = time.time()
     for i, data in enumerate(tqdm(train_loader)):
         print(time.time())
@@ -141,7 +141,7 @@ def val(config):
         collate_fn=collate_fn,
         pin_memory=True,
     )
-    stores = [None for x in range(39472)]
+    stores = [None for x in range(156)]
 
     t = time.time()
     for i, data in enumerate(tqdm(val_loader)):
@@ -192,7 +192,7 @@ def test(config):
         collate_fn=collate_fn,
         pin_memory=True,
     )
-    stores = [None for x in range(78143)]
+    stores = [None for x in range(163)]
 
     t = time.time()
     for i, data in enumerate(tqdm(test_loader)):

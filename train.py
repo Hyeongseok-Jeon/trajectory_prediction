@@ -47,12 +47,25 @@ parser.add_argument(
     "--port", default=3949, type=str, metavar="WEIGHT", help="checkpoint path"
 )
 
+parser.add_argument(
+    "-d", "--data", default="HMC", type=str, metavar="DATA", help="data source"
+)
+
+
 def main():
     # Import all settings for experiment.
     args = parser.parse_args()
     args.model = 'lanegcn'
     model = import_module(args.model)
     config, Dataset, collate_fn, net, loss, post_process, opt = model.get_model()
+    if args.data == 'HMC':
+        config["train_split"] = os.path.join(root_path, "dataset\\HMC\\train\\data")
+        config["val_split"] = os.path.join(root_path, "dataset\\HMC\\val\\data")
+        config["test_split"] = os.path.join(root_path, "dataset\\HMC\\test_obs\\data")
+        config['preprocess_train'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\train_crs_dist6_angle90.p")
+        config['preprocess_val'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\val_crs_dist6_angle90.p")
+        config['preprocess_test'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\test_test.p")
+
     config['batch_size'] = 1
     if args.resume or args.weight:
         ckpt_path = args.resume or args.weight
