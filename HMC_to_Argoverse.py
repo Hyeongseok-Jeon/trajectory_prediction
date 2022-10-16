@@ -98,7 +98,7 @@ def map_conversion():
         with open(link_list[i], 'rb') as f:
             data = pickle.load(f)
         if data['prev_ids_count'] == 0 or data['next_ids_count'] == 0:
-            pass
+            valid_idx.append(i)
         else:
             valid_idx.append(i)
     link_list = [link_list[valid_idx[i]] for i in range(len(valid_idx))]
@@ -160,13 +160,13 @@ def map_conversion():
                 if wps_cand[0] == wps_pt[0] and wps_cand[1] == wps_pt[1]:
                     SubElement(way, 'nd').attrib = {"ref": str(z)}
         if data['prev_ids_count'] == 0:
-            SubElement(way, 'tag').attrib = {"k": "predecessor", "v": "None"}
+            pass
         else:
             for j in range(data['prev_ids_count']):
                 pred_id = data['prev_id'][j]
                 SubElement(way, 'tag').attrib = {"k": "predecessor", "v": str(pred_id)}
         if data['next_ids_count'] == 0:
-            SubElement(way, 'tag').attrib = {"k": "successor", "v": "None"}
+            pass
         else:
             for j in range(data['next_ids_count']):
                 suc_id = data['next_id'][j]
