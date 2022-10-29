@@ -1,6 +1,7 @@
 
 #region Pickle interface
 import pickle
+import numpy as np
 
 def load_pickle(path):
     f = open(path, "rb")
@@ -12,6 +13,50 @@ def write_pickle(path, data):
     f = open(path, "wb")
     pickle.dump(data, f)
     f.close()
+
+def ENUtoWGS(RefPosLat, RefPosLong, ENUInputPnt_north, ENUInputPnt_east):
+
+    f64_KappaLat = 0.0
+    f64_KappaLon = 0.0
+    f64_ENUEast = 0.0
+    f64_ENUNorth = 0.0
+
+    f64_M = 0.0
+    f64_N = 0.0
+
+    F64_TMC_DEG2RAD = 0.01745329251994
+    F64_TMC_RAD2DEG = 57.2957795130824
+    F64_TMC_GEOD_A = 6378137.0
+    F64_TMC_GEOD_E2 = 0.00669437999014
+    F64_TMC_EPS = 0.00000001
+    F64_TMC_WGS84_SCALE_FACTOR = 1.0e-7
+
+    f64_WGS84Latitude_rad = F64_TMC_DEG2RAD * RefPosLat
+    f64_WGS84Longitude_rad = F64_TMC_DEG2RAD * RefPosLong
+
+    f64_SinLatitue_rad = np.sin(f64_WGS84Latitude_rad)
+    f64_CosLatitue_rad = np.cos(f64_WGS84Latitude_rad)
+    f64_SquareSinLatitue_rad = f64_SinLatitue_rad * f64_SinLatitue_rad
+
+    f64_Denominator = np.sqrt(1.0 - (F64_TMC_GEOD_E2 * f64_SquareSinLatitue_rad))
+    f64_CubicDenominator = f64_Denominator * f64_Denominator * f64_Denominator
+    f64_NxCosLatitue = 0.0
+
+    f64_M = F64_TMC_GEOD_A * (1.0 - F64_TMC_GEOD_E2) / f64_CubicDenominator
+    f64_N = F64_TMC_GEOD_A / f64_Denominator
+
+    f64_KappaLat = 1.0 / f64_M * F64_TMC_RAD2DEG
+    f64_NxCosLatitue = f64_N * f64_CosLatitue_rad
+
+    if f64_NxCosLatitue == 0.0:
+        f64_NxCosLatitue = 0.000000000000001
+
+    f64_KappaLon = 1.0 / f64_NxCosLatitue * F64_TMC_RAD2DEG
+
+    f64_Latitude_deg = RefPosLat + (f64_KappaLat * ENUInputPnt_north)
+    f64_Longitude_deg = RefPosLong + (f64_KappaLon * ENUInputPnt_east)
+
+    return [f64_Latitude_deg, f64_Longitude_deg]
 #endregion
 
 #region C Types Structures

@@ -355,7 +355,6 @@ def pipe_server():
                         lane_link['prev_id'].append(int.from_bytes(data[8 * num_cnt + 96:8 * num_cnt + 104], 'little', signed=False))
                     lane_link['ref_lat'] = struct.unpack('<d', data[176:184])[0]
                     lane_link['ref_lng'] = struct.unpack('<d', data[184:192])[0]
-                    ref_utm_x, ref_utm_y = myProj(lane_link['ref_lng'], lane_link['ref_lat'])
 
                     lane_link['points_count'] = int.from_bytes(data[192:196], 'little', signed=False)
                     lane_link['points_x'] = []
@@ -363,10 +362,14 @@ def pipe_server():
                     lane_link['points_x_utm'] = []
                     lane_link['points_y_utm'] = []
                     for num_cnt in range(550):
-                        lane_link['points_x'].append(struct.unpack('<d', data[8 * num_cnt + 200:8 * num_cnt + 208])[0])
-                        lane_link['points_y'].append(struct.unpack('<d', data[8 * num_cnt + 4600:8 * num_cnt + 4608])[0])
-                        lane_link['points_x_utm'].append(struct.unpack('<d', data[8 * num_cnt + 200:8 * num_cnt + 208])[0] + ref_utm_x)
-                        lane_link['points_y_utm'].append(struct.unpack('<d', data[8 * num_cnt + 4600:8 * num_cnt + 4608])[0] + ref_utm_y)
+                        points_x = struct.unpack('<d', data[8 * num_cnt + 200:8 * num_cnt + 208])[0]
+                        points_y = struct.unpack('<d', data[8 * num_cnt + 4600:8 * num_cnt + 4608])[0]
+                        points_lat, points_long = ENUtoWGS(lane_link['ref_lat'], lane_link['ref_lng'], points_y, points_x)
+                        lane_link['points_lat'].append(points_lat)
+                        lane_link['points_lng'].append(points_long)
+                        x, y = myProj(points_lat, points_long)
+                        lane_link['points_x_utm'].append(x)
+                        lane_link['points_y_utm'].append(y)
                     lane_link['id'] = int.from_bytes(data[9000:9008], 'little', signed=False)
                     lane_link['left_id'] = int.from_bytes(data[9008:9016], 'little', signed=False)
                     lane_link['right_id'] = int.from_bytes(data[9016:9024], 'little', signed=False)
