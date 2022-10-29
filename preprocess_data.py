@@ -56,6 +56,9 @@ def main():
     config["workers"] = 16
     config['cross_dist'] = 6
     config['cross_angle'] = 0.5 * np.pi
+    config["batch_size"] = 2
+    config["val_batch_size"] = 2
+
     if args.data == 'HMC':
         config["train_split"] = os.path.join(root_path, "dataset\\HMC\\train\\data")
         config["val_split"] = os.path.join(root_path, "dataset\\HMC\\val\\data")
@@ -87,7 +90,7 @@ def train(config):
         drop_last=False,
     )
 
-    stores = [None for x in range(705)]
+    stores = [None for x in range(697)]
     t = time.time()
     for i, data in enumerate(tqdm(train_loader)):
         print(time.time())
@@ -141,7 +144,7 @@ def val(config):
         collate_fn=collate_fn,
         pin_memory=True,
     )
-    stores = [None for x in range(156)]
+    stores = [None for x in range(162)]
 
     t = time.time()
     for i, data in enumerate(tqdm(val_loader)):
@@ -192,7 +195,7 @@ def test(config):
         collate_fn=collate_fn,
         pin_memory=True,
     )
-    stores = [None for x in range(163)]
+    stores = [None for x in range(165)]
 
     t = time.time()
     for i, data in enumerate(tqdm(test_loader)):

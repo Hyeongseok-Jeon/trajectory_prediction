@@ -109,13 +109,13 @@ def map_conversion():
         with open(link_list[i], 'rb') as f:
             data = pickle.load(f)
         if init == 0:
-            x = data['points_x_utm'][:data['points_count']]
-            y = data['points_y_utm'][:data['points_count']]
+            x = data['points_x_utm']
+            y = data['points_y_utm']
             pt_list = np.array([x,y]).T
             init = 1
         else:
-            x = data['points_x_utm'][:data['points_count']]
-            y = data['points_y_utm'][:data['points_count']]
+            x = data['points_x_utm']
+            y = data['points_y_utm']
             pt_list = np.concatenate((pt_list, np.array([x,y]).T), axis=0)
         halluc_bbox[i, 0] = np.min(x)
         halluc_bbox[i, 1] = np.min(y)
@@ -132,6 +132,7 @@ def map_conversion():
         SubElement(root, 'node').attrib = {"id": str(id), "x": str(x), "y": str(y)}
     cnt = 0
     for i in range(len(link_list)):
+        print(i/len(link_list))
         with open(link_list[i], 'rb') as f:
             data = pickle.load(f)
         cnt = cnt + 1
@@ -150,8 +151,8 @@ def map_conversion():
         else:
             SubElement(way, 'tag').attrib = {"k": "r_neighbor_id", "v": str(data['right_id'])}
 
-        x = data['points_x_utm'][:data['points_count']]
-        y = data['points_y_utm'][:data['points_count']]
+        x = data['points_x_utm']
+        y = data['points_y_utm']
         points_in_link = np.array([x, y]).T
         for j in range(len(points_in_link)):
             wps_pt = np.array([points_in_link[j][0], points_in_link[j][1]])
@@ -357,19 +358,22 @@ def pipe_server():
                     lane_link['ref_lng'] = struct.unpack('<d', data[184:192])[0]
 
                     lane_link['points_count'] = int.from_bytes(data[192:196], 'little', signed=False)
-                    lane_link['points_x'] = []
-                    lane_link['points_y'] = []
-                    lane_link['points_x_utm'] = []
-                    lane_link['points_y_utm'] = []
+                    lane_link['points_lat'] = []
+                    lane_link['points_lng'] = []
+                    lane_link['points_x_utm_sparse'] = []
+                    lane_link['points_y_utm_sparse'] = []
                     for num_cnt in range(550):
                         points_x = struct.unpack('<d', data[8 * num_cnt + 200:8 * num_cnt + 208])[0]
                         points_y = struct.unpack('<d', data[8 * num_cnt + 4600:8 * num_cnt + 4608])[0]
                         points_lat, points_long = ENUtoWGS(lane_link['ref_lat'], lane_link['ref_lng'], points_y, points_x)
                         lane_link['points_lat'].append(points_lat)
                         lane_link['points_lng'].append(points_long)
-                        x, y = myProj(points_lat, points_long)
-                        lane_link['points_x_utm'].append(x)
-                        lane_link['points_y_utm'].append(y)
+                        x, y = myProj(points_long, points_lat)
+                        lane_link['points_x_utm_sparse'].append(x)
+                        lane_link['points_y_utm_sparse'].append(y)
+                    dense_x, dense_y = interpolate(lane_link['points_x_utm_sparse'][:lane_link['points_count']], lane_link['points_y_utm_sparse'][:lane_link['points_count']], 0.5)
+                    lane_link['points_x_utm'] = dense_x
+                    lane_link['points_y_utm'] = dense_y
                     lane_link['id'] = int.from_bytes(data[9000:9008], 'little', signed=False)
                     lane_link['left_id'] = int.from_bytes(data[9008:9016], 'little', signed=False)
                     lane_link['right_id'] = int.from_bytes(data[9016:9024], 'little', signed=False)

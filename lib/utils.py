@@ -2,6 +2,11 @@
 #region Pickle interface
 import pickle
 import numpy as np
+from sympy import nsolve, Symbol, exp
+import matplotlib
+import matplotlib.pyplot as plt
+
+matplotlib.use('Qt5Agg')
 
 def load_pickle(path):
     f = open(path, "rb")
@@ -55,8 +60,31 @@ def ENUtoWGS(RefPosLat, RefPosLong, ENUInputPnt_north, ENUInputPnt_east):
 
     f64_Latitude_deg = RefPosLat + (f64_KappaLat * ENUInputPnt_north)
     f64_Longitude_deg = RefPosLong + (f64_KappaLon * ENUInputPnt_east)
+    return f64_Latitude_deg, f64_Longitude_deg
 
-    return [f64_Latitude_deg, f64_Longitude_deg]
+def interpolate(x, y, gap):
+    points = np.asarray([x,y]).transpose()
+    new_points = np.asarray([[x[0],y[0]]])
+
+    cur_idx = 1
+    while cur_idx < len(x):
+        if np.linalg.norm(points[cur_idx,:]-new_points[-1,:]) > gap:
+            x_temp = new_points[-1,0] + (points[cur_idx,0]-new_points[-1,0])*gap/np.linalg.norm(points[cur_idx,:]-new_points[-1,:])
+            y_temp = new_points[-1,1] + (points[cur_idx,1]-new_points[-1,1])*gap/np.linalg.norm(points[cur_idx,:]-new_points[-1,:])
+            new_points = np.concatenate((new_points,np.asarray([[x_temp,y_temp]])))
+        else:
+            cur_idx = cur_idx + 1
+            if cur_idx == len(x):
+                new_points = np.concatenate((new_points, np.asarray([[x[-1], y[-1]]])))
+            else:
+                x1 = Symbol("x")
+                y1 = Symbol("y")
+
+                feq1 = (x1-new_points[-1,0])**2 + (y1-new_points[-1,1])**2 - gap**2
+                feq2 = ((points[cur_idx,1] - points[cur_idx-1,1])/(points[cur_idx,0] - points[cur_idx-1,0])) * (x1-points[cur_idx-1,0]) + points[cur_idx-1,1]-y1
+                ans_x, ans_y = nsolve([feq1, feq2], [x1, y1], [points[cur_idx,0], points[cur_idx,1]])
+                new_points = np.concatenate((new_points,np.asarray([[float(ans_x),float(ans_y)]])))
+    return list(new_points[:,0]), list(new_points[:,1])
 #endregion
 
 #region C Types Structures
