@@ -90,7 +90,7 @@ def train(config):
         drop_last=False,
     )
 
-    stores = [None for x in range(697)]
+    stores = [None for x in range(709)]
     t = time.time()
     for i, data in enumerate(tqdm(train_loader)):
         print(time.time())
@@ -144,7 +144,7 @@ def val(config):
         collate_fn=collate_fn,
         pin_memory=True,
     )
-    stores = [None for x in range(162)]
+    stores = [None for x in range(150)]
 
     t = time.time()
     for i, data in enumerate(tqdm(val_loader)):
