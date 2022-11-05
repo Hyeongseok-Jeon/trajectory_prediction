@@ -371,7 +371,7 @@ def pipe_server():
                         x, y = myProj(points_long, points_lat)
                         lane_link['points_x_utm_sparse'].append(x)
                         lane_link['points_y_utm_sparse'].append(y)
-                    dense_x, dense_y = interpolate(lane_link['points_x_utm_sparse'][:lane_link['points_count']], lane_link['points_y_utm_sparse'][:lane_link['points_count']], 0.5)
+                    dense_x, dense_y = interpolate(lane_link['points_x_utm_sparse'][:lane_link['points_count']], lane_link['points_y_utm_sparse'][:lane_link['points_count']], 1)
                     lane_link['points_x_utm'] = dense_x
                     lane_link['points_y_utm'] = dense_y
                     lane_link['id'] = int.from_bytes(data[9000:9008], 'little', signed=False)

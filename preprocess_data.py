@@ -56,8 +56,8 @@ def main():
     config["workers"] = 16
     config['cross_dist'] = 6
     config['cross_angle'] = 0.5 * np.pi
-    config["batch_size"] = 2
-    config["val_batch_size"] = 2
+    config["batch_size"] = 1
+    config["val_batch_size"] = 1
 
     if args.data == 'HMC':
         config["train_split"] = os.path.join(root_path, "dataset\\HMC\\train\\data")
