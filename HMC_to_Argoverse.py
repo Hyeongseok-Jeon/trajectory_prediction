@@ -219,7 +219,9 @@ def pipe_server():
 
     # endregion
     pipe = Pipes(IN_PIPE_NAME, OUT_PIPE_NAME, MAX_PIPE_BUFFER_SIZE, connect_first=False)
-    print("pipe server"    raw_data = {'TIMESTAMP': [],
+    print("pipe server")
+
+    raw_data = {'TIMESTAMP': [],
                 'TRACK_ID': [],
                 'OBJECT_TYPE': [],
                 'X': [],
