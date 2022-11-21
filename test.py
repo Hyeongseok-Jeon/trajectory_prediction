@@ -49,12 +49,21 @@ parser.add_argument(
     "--weight", default="", type=str, metavar="WEIGHT", help="checkpoint path"
 )
 
+parser.add_argument(
+    "-d", "--data", default="HMC", type=str, metavar="DATA", help="data source"
+)
+
 
 def main():
     # Import all settings for experiment.
     args = parser.parse_args()
     model = import_module(args.model)
     config, _, collate_fn, net, loss, post_process, opt = model.get_model()
+    if args.data == 'HMC':
+        print('testing with HMC data')
+        config["train_split"] = os.path.join(root_path, "dataset\\HMC\\train\\data")
+        config["val_split"] = os.path.join(root_path, "dataset\\HMC\\val\\data")
+        config["test_split"] = os.path.join(root_path, "dataset\\HMC\\test_obs\\data")
 
     # load pretrain model
     ckpt_path = args.weight
@@ -100,7 +109,7 @@ def main():
     # evaluate or submit
     if args.split == "val":
         # for val set: compute metric
-        from argoverse.evaluation.eval_forecasting import (
+        from argoverse_api.argoverse.evaluation.eval_forecasting import (
             compute_forecasting_metrics,
         )
         # Max #guesses (K): 6
@@ -109,7 +118,7 @@ def main():
         _ = compute_forecasting_metrics(preds, gts, cities, 1, 30, 2)
     else:
         # for test set: save as h5 for submission in evaluation server
-        from argoverse.evaluation.competition_util import generate_forecasting_h5
+        from argoverse_api.argoverse.evaluation.competition_util import generate_forecasting_h5
         generate_forecasting_h5(preds, f"{config['save_dir']}/submit.h5")  # this might take awhile
     import ipdb;ipdb.set_trace()
 

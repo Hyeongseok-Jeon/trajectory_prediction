@@ -59,6 +59,7 @@ def main():
     model = import_module(args.model)
     config, Dataset, collate_fn, net, loss, post_process, opt = model.get_model()
     if args.data == 'HMC':
+        print('training with HMC data')
         config["train_split"] = os.path.join(root_path, "dataset\\HMC\\train\\data")
         config["val_split"] = os.path.join(root_path, "dataset\\HMC\\val\\data")
         config["test_split"] = os.path.join(root_path, "dataset\\HMC\\test_obs\\data")

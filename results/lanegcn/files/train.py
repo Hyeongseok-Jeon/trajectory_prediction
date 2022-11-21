@@ -47,12 +47,27 @@ parser.add_argument(
     "--port", default=3949, type=str, metavar="WEIGHT", help="checkpoint path"
 )
 
+parser.add_argument(
+    "-d", "--data", default="HMC", type=str, metavar="DATA", help="data source"
+)
+
+
 def main():
     # Import all settings for experiment.
     args = parser.parse_args()
+    args.model = 'lanegcn'
     model = import_module(args.model)
     config, Dataset, collate_fn, net, loss, post_process, opt = model.get_model()
+    if args.data == 'HMC':
+        print('training with HMC data')
+        config["train_split"] = os.path.join(root_path, "dataset\\HMC\\train\\data")
+        config["val_split"] = os.path.join(root_path, "dataset\\HMC\\val\\data")
+        config["test_split"] = os.path.join(root_path, "dataset\\HMC\\test_obs\\data")
+        config['preprocess_train'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\train_crs_dist6_angle90.p")
+        config['preprocess_val'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\val_crs_dist6_angle90.p")
+        config['preprocess_test'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\test_test.p")
 
+    config['batch_size'] = 1
     if args.resume or args.weight:
         ckpt_path = args.resume or args.weight
         if not os.path.isabs(ckpt_path):
@@ -148,7 +163,6 @@ def train(epoch, config, train_loader, net, loss, post_process, opt, val_loader=
         opt.zero_grad()
         loss_out["loss"].backward()
         lr = opt.step(epoch)
-
         num_iters = int(np.round(epoch * num_batches))
         if num_iters % save_iters == 0 or epoch >= config["num_epochs"]:
             save_ckpt(net, opt, config["save_dir"], epoch)

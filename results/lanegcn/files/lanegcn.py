@@ -56,20 +56,20 @@ config["val_workers"] = config["workers"]
 """Dataset"""
 # Raw Dataset
 config["train_split"] = os.path.join(
-    root_path, "dataset/train/data"
+    root_path, "dataset/Argoverse/train/data"
 )
-config["val_split"] = os.path.join(root_path, "dataset/val/data")
-config["test_split"] = os.path.join(root_path, "dataset/test_obs/data")
+config["val_split"] = os.path.join(root_path, "dataset/Argoverse/val/data")
+config["test_split"] = os.path.join(root_path, "dataset/Argoverse/test_obs/data")
 
 # Preprocessed Dataset
 config["preprocess"] = True # whether use preprocess or not
 config["preprocess_train"] = os.path.join(
-    root_path, "dataset","preprocess", "train_crs_dist6_angle90.p"
+    root_path, "dataset","Argoverse", "preprocess", "train_crs_dist6_angle90.p"
 )
 config["preprocess_val"] = os.path.join(
-    root_path,"dataset", "preprocess", "val_crs_dist6_angle90.p"
+    root_path,"dataset", "Argoverse", "preprocess", "val_crs_dist6_angle90.p"
 )
-config['preprocess_test'] = os.path.join(root_path, "dataset",'preprocess', 'test_test.p')
+config['preprocess_test'] = os.path.join(root_path, "dataset",'Argoverse','preprocess', 'test_test.p')
 
 """Model"""
 config["rot_aug"] = False

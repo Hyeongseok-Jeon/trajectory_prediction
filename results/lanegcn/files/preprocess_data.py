@@ -35,6 +35,14 @@ parser.add_argument(
     "-m", "--model", default="lanegcn", type=str, metavar="MODEL", help="model name"
 )
 
+parser.add_argument(
+    "-d", "--data", default="HMC", type=str, metavar="DATA", help="data source"
+)
+
+parser.add_argument(
+    "-p", "--port", default=4538, type=int, metavar="DATA", help="data source"
+)
+
 
 def main():
     # Import all settings for experiment.
@@ -48,14 +56,26 @@ def main():
     config["workers"] = 16
     config['cross_dist'] = 6
     config['cross_angle'] = 0.5 * np.pi
+    config["batch_size"] = 1
+    config["val_batch_size"] = 1
+
+    if args.data == 'HMC':
+        config["train_split"] = os.path.join(root_path, "dataset\\HMC\\train\\data")
+        config["val_split"] = os.path.join(root_path, "dataset\\HMC\\val\\data")
+        config["test_split"] = os.path.join(root_path, "dataset\\HMC\\test_obs\\data")
+        config['preprocess_train'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\train_crs_dist6_angle90.p")
+        config['preprocess_val'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\val_crs_dist6_angle90.p")
+        config['preprocess_test'] = os.path.join(root_path, "dataset\\HMC\\preprocess\\test_test.p")
+    elif args.data == 'Argoverse':
+        config["train_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
+        config["val_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
+        config["test_split"] = os.path.join(root_path, "dataset/Argoverse/forecasting_sample/data")
+        config['preprocess_train'] = os.path.join(root_path, "dataset/Argoverse/preprocess")
 
     os.makedirs(os.path.dirname(config['preprocess_train']),exist_ok=True)
-    config["train_split"] = 'dataset/forecasting_sample/data'
-    # val(config)
-    # test(config)
-    # train(config)
+    val(config)
+    test(config)
     train(config)
-
 
 def train(config):
     # Data loader for training set
@@ -70,7 +90,7 @@ def train(config):
         drop_last=False,
     )
 
-    stores = [None for x in range(647)]
+    stores = [None for x in range(709)]
     t = time.time()
     for i, data in enumerate(tqdm(train_loader)):
         print(time.time())
@@ -124,7 +144,7 @@ def val(config):
         collate_fn=collate_fn,
         pin_memory=True,
     )
-    stores = [None for x in range(39472)]
+    stores = [None for x in range(150)]
 
     t = time.time()
     for i, data in enumerate(tqdm(val_loader)):
@@ -175,7 +195,7 @@ def test(config):
         collate_fn=collate_fn,
         pin_memory=True,
     )
-    stores = [None for x in range(78143)]
+    stores = [None for x in range(165)]
 
     t = time.time()
     for i, data in enumerate(tqdm(test_loader)):
