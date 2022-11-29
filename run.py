@@ -13,6 +13,10 @@ from pyproj import Proj
 import os.path
 from os import path
 from pandas import Series, DataFrame
+from utils import read_argo_data, get_obj_feats, get_lane_graph
+from argoverse_api.argoverse.map_representation.map_api import ArgoverseMap
+import time
+
 from xml.etree.ElementTree import Element, SubElement, ElementTree, dump
 import json
 
@@ -28,7 +32,10 @@ parser.add_argument("--mode", default='client')
 parser.add_argument("--port", default=52162)
 config = parser.parse_args()
 myProj = Proj(proj='utm', zone=52, ellps='WGS84', datum='WGS84', units='m')
+from importlib import import_module
 
+model = import_module('lanegcn')
+config, Dataset, collate_fn, net, loss, post_process, opt = model.get_model()
 
 def indent(elem, level=0):
     i = "\n" + level * "  "
@@ -46,86 +53,96 @@ def indent(elem, level=0):
             elem.tail = i
 
 
-def update_mem(mem, new, data_count):
+def update_mem(mem, new, am, fov):
     time_list = mem['TIMESTAMP'].values.tolist()
     time_list_sort = []
     [time_list_sort.append(x) for x in time_list if x not in time_list_sort]
-    print(len(time_list_sort))
     if len(time_list_sort) == 50:
-        print('save')
+        print('prediction run')
         id_list = list(mem['TRACK_ID'])
         full_id = []
         for i in range(len(id_list)):
             if id_list.count(id_list[i]) == 50:
                 if not(id_list[i] in full_id):
                     full_id.append(id_list[i])
-
+        full_id.remove('000-0000-0000')
+        init = time.time()
+        data_tot = {'city': [],
+                    'orig': [],
+                    'gt_preds': [],
+                    'has_preds': [],
+                    'theta': [],
+                    'rot': [],
+                    'feats': [],
+                    'ctrs': [],
+                    'graph': []}
         for i in range(len(full_id)):
             data_save = mem.copy()
-            for j in range(len(data_save)):
-                if list(data_save['TRACK_ID'])[j] == full_id[i]:
-                    data_save.iat[j, 2] = 'AGENT'
-            data_count = data_count + 1
-            cls_rand = np.random.rand()
-            if cls_rand < 0.15:
-                cls = 'test_obs'
-            elif cls_rand < 0.3:
-                cls = 'val'
-            else:
-                cls = 'train'
-            if data_count > 1000:
-                data_save.to_csv('D://research//trajectory_prediction//dataset//HMC//'+cls+'//data//'+str(data_count)+'.csv', index=False)
-        raw_data = {'TIMESTAMP': [],
-                    'TRACK_ID': [],
-                    'OBJECT_TYPE': [],
-                    'X': [],
-                    'Y': [],
-                    'CITY_NAME': [],
-                    'HEADING': []}
-        new_mem = DataFrame(raw_data)
+
+            indices = [j for j, x in enumerate(list(data_save['TRACK_ID'])) if x == full_id[i]]
+            for k in indices:
+                data_save.iat[k, 2] = 'AGENT'
+
+            print(data_input['feats'])
+            data_input = read_argo_data('HMC',data_save)
+            print('1', data_input['feats'])
+            data_input = get_obj_feats(data_input)
+            print('2', data_input['feats'])
+            data_input['graph'] = get_lane_graph(data_input, am)
+            print('3', data_input['feats'])
+
+            data_tot['city'].append(data_input['city'])
+            data_tot['orig'].append(data_input['orig'])
+            data_tot['gt_preds'].append(data_input['gt_preds'])
+            data_tot['has_preds'].append(data_input['has_preds'])
+            data_tot['theta'].append(data_input['theta'])
+            data_tot['rot'].append(data_input['rot'])
+            data_tot['feats'].append(data_input['feats'])
+            data_tot['ctrs'].append(data_input['ctrs'])
+            data_tot['graph'].append(data_input['graph'])
+        print(data_tot["feats"])
+        output = net(data_tot)
+
+        print('conversion finished', time.time()-init)
+
+        # new_mem = DataFrame(raw_data)
     else:
         new_mem = pd.concat([mem, new])
 
 
-    return new_mem, data_count
+    return new_mem
 
 def pipe_server():
     # region Config
+    am = ArgoverseMap()
     pipe_buffer_size = ctypes.sizeof(message_t)
     msg = message_t()
     msg.id = MESSAGE_OK
     message_type = MESSAGE_OK
-
+    data_num = 0
     # endregion
     pipe = Pipes(IN_PIPE_NAME, OUT_PIPE_NAME, MAX_PIPE_BUFFER_SIZE, connect_first=False)
-    print("pipe server")
 
     raw_data = {'TIMESTAMP': [],
                 'TRACK_ID': [],
                 'OBJECT_TYPE': [],
                 'X': [],
                 'Y': [],
-
                 'CITY_NAME': [],
                 'HEADING': []}
     mem = DataFrame(raw_data)
-    data_count = 0
     while True:
         # try:
         status, resp = pipe.read_pipe(pipe_buffer_size)
         if status == 0:
-            print("Status:", status)
             if message_type == MESSAGE_OK:
                 # Read message
                 msg = message_t.from_buffer_copy(resp)
-                print("Message: %d" % msg.id)
                 pipe_buffer_size = msg.size
                 message_type = msg.id
 
             elif message_type == MESSAGE_OBJ:
-                print("OBJ received")
                 num_obj = int(len(resp) / 44)
-                print(num_obj)
 
                 obj = dict()
                 for i in range(num_obj):
@@ -170,20 +187,19 @@ def pipe_server():
                         yaw = np.mod(veh_list[0][6] + obj_info['heading_angle'],360)
                         veh_list.append([cur_time, obj_id, 'OTHERS', x, y, 'HMC', yaw])
                     data_temp = pd.DataFrame(veh_list, columns=['TIMESTAMP', 'TRACK_ID', 'OBJECT_TYPE', 'X', 'Y', 'CITY_NAME', 'HEADING'])
-                mem, data_count = update_mem(mem, data_temp, data_count)
-                print(data_count)
+                if data_num > 1000:
+                    print('mem')
+                    mem = update_mem(mem, data_temp, am, 100)
 
                 # Send OK Message
                 msg.id = MESSAGE_OK
                 pipe.write_pipe(ctypes.string_at(ctypes.byref(msg), ctypes.sizeof(msg)))
-                print("Message Sent!")
                 pipe_buffer_size = ctypes.sizeof(message_t)
 
                 # Set message type to OK
                 message_type = MESSAGE_OK
             elif message_type == MESSAGE_EGO:
                 veh_list = []
-                print("EGO received")
                 ego = dict()
                 ego['time_stamp'] = int.from_bytes(resp[0:8], 'little', signed=False)
                 ego['speed_mps'] = struct.unpack('<d', resp[8:16])[0]
@@ -198,13 +214,10 @@ def pipe_server():
                 # Send OK Message
                 msg.id = MESSAGE_OK
                 pipe.write_pipe(ctypes.string_at(ctypes.byref(msg), ctypes.sizeof(msg)))
-                print("Message Sent!")
                 pipe_buffer_size = ctypes.sizeof(message_t)
-
+                data_num = data_num + 1
                 # Set message type to OK
                 message_type = MESSAGE_OK
-
-    map_conversion()
 
 
 pipe_server()
