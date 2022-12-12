@@ -26,7 +26,7 @@ from xml.etree.ElementTree import Element, SubElement, ElementTree, dump
 import json
 pd.set_option('display.max_rows', None)
 
-MAX_PIPE_BUFFER_SIZE = 64 * 1024 * 1024
+MAX_PIPE_BUFFER_SIZE = 1024 * 1024 * 1024
 IN_PIPE_NAME = "\\\\.\\pipe\\python_in"
 OUT_PIPE_NAME = "\\\\.\\pipe\\c_in"
 
@@ -295,10 +295,10 @@ def update_mem(mem, new, am, fov):
                 if key in ["graph"]:
                     store[key] = to_int16(store[key])
             data_tot[store["idx"]] = store
+            break
         print('5')
 
         dataset = PreprocessDataset(data_tot, config, train=True)
-
         data_loader = DataLoader(
             dataset,
             batch_size=config['batch_size'],
@@ -332,6 +332,7 @@ def pipe_server():
     data_num = 0
     # endregion
     pipe = Pipes(IN_PIPE_NAME, OUT_PIPE_NAME, MAX_PIPE_BUFFER_SIZE, connect_first=False)
+    # win32pipe.WaitNamedPipe(r'{}'.format(IN_PIPE_NAME), win32pipe.NMPWAIT_WAIT_FOREVER)
 
     raw_data = {'TIMESTAMP': [],
                 'TRACK_ID': [],
