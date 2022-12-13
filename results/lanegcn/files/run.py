@@ -43,8 +43,8 @@ from importlib import import_module
 model = import_module('lanegcn')
 config, Dataset, collate_fn, net, loss, post_process, opt = model.get_model()
 config["preprocess"] = False  # we use raw data to generate preprocess data
-config["val_workers"] = 1
-config["workers"] = 1
+config["val_workers"] = 16
+config["workers"] = 16
 config['cross_dist'] = 6
 config['cross_angle'] = 0.5 * np.pi
 config["batch_size"] = 1

@@ -53,7 +53,7 @@ def main():
 
     config["preprocess"] = False  # we use raw data to generate preprocess data
     config["val_workers"] = 16
-    config["workers"] = 16
+    config["workers"] = 1
     config['cross_dist'] = 6
     config['cross_angle'] = 0.5 * np.pi
     config["batch_size"] = 1
