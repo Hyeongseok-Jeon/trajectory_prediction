@@ -25,6 +25,7 @@ os.umask(0)
 
 
 root_path = os.path.dirname(os.path.abspath(__file__))
+root_path = os.getcwd()
 sys.path.insert(0, root_path)
 
 
@@ -47,12 +48,12 @@ parser.add_argument(
 def main():
     # Import all settings for experiment.
     args = parser.parse_args()
-    model = import_module(args.model)
+    model = import_module('lanegcn')
     print(args.model)
     config, *_ = model.get_model()
 
     config["preprocess"] = False  # we use raw data to generate preprocess data
-    config["val_workers"] = 16
+    config["val_workers"] = 1
     config["workers"] = 1
     config['cross_dist'] = 6
     config['cross_angle'] = 0.5 * np.pi
@@ -300,7 +301,6 @@ class PreprocessDataset():
 
     def __len__(self):
         return len(self.split)
-
 
 
 

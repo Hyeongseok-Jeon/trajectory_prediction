@@ -228,26 +228,27 @@ def to_long(data):
     return data
 
 
-def modify(config, data_loader, save):
+def modify(config, data_tot, save):
     t = time.time()
-    store = data_loader.dataset.split
     print('7')
 
-    for i, data in enumerate(data_loader):
-        print('8')
-
-        data = [dict(x) for x in data]
+    for i, datus in enumerate(data_tot):
+        graph = dict()
+        for key in ['lane_idcs', 'ctrs', 'pre_pairs', 'suc_pairs', 'left_pairs', 'right_pairs', 'feats']:
+            graph[key] = ref_copy(datus['graph'][key])
+        graph['idx'] = i
+        data = [graph]
 
         out = []
         for j in range(len(data)):
             out.append(preprocess(to_long(gpu(data[j])), config['cross_dist']))
         print('9')
-
-        for j, graph in enumerate(out):
-            idx = graph['idx']
-            store[idx]['graph']['left'] = graph['left']
-            store[idx]['graph']['right'] = graph['right']
-    return store
+        #
+        # for j, graph in enumerate(out):
+        #     idx = graph['idx']
+        #     store[idx]['graph']['left'] = graph['left']
+        #     store[idx]['graph']['right'] = graph['right']
+    return 0
 
 def update_mem(mem, new, am, fov):
     time_list = mem['TIMESTAMP'].values.tolist()
@@ -295,7 +296,8 @@ def update_mem(mem, new, am, fov):
                 if key in ["graph"]:
                     store[key] = to_int16(store[key])
             data_tot[store["idx"]] = store
-            break
+            if i > 10:
+                break
         print('5')
 
         dataset = PreprocessDataset(data_tot, config, train=True)
@@ -308,7 +310,7 @@ def update_mem(mem, new, am, fov):
             pin_memory=True,
             drop_last=False)
 
-        data = modify(config, data_loader, config["preprocess_train"])
+        data = modify(config, data_tot, config["preprocess_train"])
 
         # print(data_tot["feats"])
         output = net(data_tot)
