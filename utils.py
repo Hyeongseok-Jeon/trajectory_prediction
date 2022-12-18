@@ -10,7 +10,7 @@ import torch
 from torch import optim
 import copy
 from scipy import sparse
-
+import time
 
 def read_argo_data(city, df):
 
@@ -423,3 +423,161 @@ class StepLR:
                 break
             idx += 1
         return self.lr[idx]
+
+def indent(elem, level=0):
+    i = "\n" + level * "  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent(elem, level + 1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
+
+def to_numpy(data):
+    """Recursively transform torch.Tensor to numpy.ndarray.
+    """
+    if isinstance(data, dict):
+        for key in data.keys():
+            data[key] = to_numpy(data[key])
+    if isinstance(data, list) or isinstance(data, tuple):
+        data = [to_numpy(x) for x in data]
+    if torch.is_tensor(data):
+        data = data.numpy()
+    return data
+
+
+def to_int16(data):
+    if isinstance(data, dict):
+        for key in data.keys():
+            data[key] = to_int16(data[key])
+    if isinstance(data, list) or isinstance(data, tuple):
+        data = [to_int16(x) for x in data]
+    if isinstance(data, np.ndarray) and data.dtype == np.int64:
+        data = data.astype(np.int16)
+    return data
+
+
+def preprocess(graph, cross_dist, cross_angle=None):
+    left, right = dict(), dict()
+
+    lane_idcs = graph['lane_idcs']
+    num_nodes = len(lane_idcs)
+    num_lanes = lane_idcs[-1].item() + 1
+
+    dist = graph['ctrs'].unsqueeze(1) - graph['ctrs'].unsqueeze(0)
+    dist = torch.sqrt((dist ** 2).sum(2))
+    hi = torch.arange(num_nodes).long().to(dist.device).view(-1, 1).repeat(1, num_nodes).view(-1)
+    wi = torch.arange(num_nodes).long().to(dist.device).view(1, -1).repeat(num_nodes, 1).view(-1)
+    row_idcs = torch.arange(num_nodes).long().to(dist.device)
+
+    if cross_angle is not None:
+        f1 = graph['feats'][hi]
+        f2 = graph['ctrs'][wi] - graph['ctrs'][hi]
+        t1 = torch.atan2(f1[:, 1], f1[:, 0])
+        t2 = torch.atan2(f2[:, 1], f2[:, 0])
+        dt = t2 - t1
+        m = dt > 2 * np.pi
+        dt[m] = dt[m] - 2 * np.pi
+        m = dt < -2 * np.pi
+        dt[m] = dt[m] + 2 * np.pi
+        mask = torch.logical_and(dt > 0, dt < config['cross_angle'])
+        left_mask = mask.logical_not()
+        mask = torch.logical_and(dt < 0, dt > -config['cross_angle'])
+        right_mask = mask.logical_not()
+
+    pre = graph['pre_pairs'].new().float().resize_(num_lanes, num_lanes).zero_()
+    pre[graph['pre_pairs'][:, 0], graph['pre_pairs'][:, 1]] = 1
+    suc = graph['suc_pairs'].new().float().resize_(num_lanes, num_lanes).zero_()
+    suc[graph['suc_pairs'][:, 0], graph['suc_pairs'][:, 1]] = 1
+
+    pairs = graph['left_pairs']
+    if len(pairs) > 0:
+        mat = pairs.new().float().resize_(num_lanes, num_lanes).zero_()
+        mat[pairs[:, 0], pairs[:, 1]] = 1
+        mat = (torch.matmul(mat, pre) + torch.matmul(mat, suc) + mat) > 0.5
+
+        left_dist = dist.clone()
+        mask = mat[lane_idcs[hi], lane_idcs[wi]].logical_not()
+        left_dist[hi[mask], wi[mask]] = 1e6
+        if cross_angle is not None:
+            left_dist[hi[left_mask], wi[left_mask]] = 1e6
+
+        min_dist, min_idcs = left_dist.min(1)
+        mask = min_dist < cross_dist
+        ui = row_idcs[mask]
+        vi = min_idcs[mask]
+        f1 = graph['feats'][ui]
+        f2 = graph['feats'][vi]
+        t1 = torch.atan2(f1[:, 1], f1[:, 0])
+        t2 = torch.atan2(f2[:, 1], f2[:, 0])
+        dt = torch.abs(t1 - t2)
+        m = dt > np.pi
+        dt[m] = torch.abs(dt[m] - 2 * np.pi)
+        m = dt < 0.25 * np.pi
+
+        ui = ui[m]
+        vi = vi[m]
+
+        left['u'] = ui.cpu().numpy().astype(np.int16)
+        left['v'] = vi.cpu().numpy().astype(np.int16)
+    else:
+        left['u'] = np.zeros(0, np.int16)
+        left['v'] = np.zeros(0, np.int16)
+
+    pairs = graph['right_pairs']
+    if len(pairs) > 0:
+        mat = pairs.new().float().resize_(num_lanes, num_lanes).zero_()
+        mat[pairs[:, 0], pairs[:, 1]] = 1
+        mat = (torch.matmul(mat, pre) + torch.matmul(mat, suc) + mat) > 0.5
+
+        right_dist = dist.clone()
+        mask = mat[lane_idcs[hi], lane_idcs[wi]].logical_not()
+        right_dist[hi[mask], wi[mask]] = 1e6
+        if cross_angle is not None:
+            right_dist[hi[right_mask], wi[right_mask]] = 1e6
+
+        min_dist, min_idcs = right_dist.min(1)
+        mask = min_dist < cross_dist
+        ui = row_idcs[mask]
+        vi = min_idcs[mask]
+        f1 = graph['feats'][ui]
+        f2 = graph['feats'][vi]
+        t1 = torch.atan2(f1[:, 1], f1[:, 0])
+        t2 = torch.atan2(f2[:, 1], f2[:, 0])
+        dt = torch.abs(t1 - t2)
+        m = dt > np.pi
+        dt[m] = torch.abs(dt[m] - 2 * np.pi)
+        m = dt < 0.25 * np.pi
+
+        ui = ui[m]
+        vi = vi[m]
+
+        right['u'] = ui.cpu().numpy().astype(np.int16)
+        right['v'] = vi.cpu().numpy().astype(np.int16)
+    else:
+        right['u'] = np.zeros(0, np.int16)
+        right['v'] = np.zeros(0, np.int16)
+
+    out = dict()
+    out['left'] = left
+    out['right'] = right
+    out['idx'] = graph['idx']
+    return out
+
+
+def to_long(data):
+    if isinstance(data, dict):
+        for key in data.keys():
+            data[key] = to_long(data[key])
+    if isinstance(data, list) or isinstance(data, tuple):
+        data = [to_long(x) for x in data]
+    if torch.is_tensor(data) and data.dtype == torch.int16:
+        data = data.long()
+    return data
