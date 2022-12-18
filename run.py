@@ -89,26 +89,6 @@ def to_int16(data):
     return data
 
 
-class PreprocessDataset():
-    def __init__(self, split, config, train=True):
-        self.split = split
-        self.config = config
-        self.train = train
-
-    def __getitem__(self, idx):
-        from data import from_numpy, ref_copy
-
-        data = self.split[idx]
-        graph = dict()
-        for key in ['lane_idcs', 'ctrs', 'pre_pairs', 'suc_pairs', 'left_pairs', 'right_pairs', 'feats']:
-            graph[key] = ref_copy(data['graph'][key])
-        graph['idx'] = idx
-        return graph
-
-    def __len__(self):
-        return len(self.split)
-
-
 def preprocess(graph, cross_dist, cross_angle=None):
     left, right = dict(), dict()
 
@@ -230,25 +210,25 @@ def to_long(data):
 
 def modify(config, data_tot, save):
     t = time.time()
-    print('7')
 
     for i, datus in enumerate(data_tot):
         graph = dict()
         for key in ['lane_idcs', 'ctrs', 'pre_pairs', 'suc_pairs', 'left_pairs', 'right_pairs', 'feats']:
-            graph[key] = ref_copy(datus['graph'][key])
+            graph[key] = torch.from_numpy(ref_copy(datus['graph'][key]))
         graph['idx'] = i
         data = [graph]
+        data = [dict(x) for x in data]
 
         out = []
         for j in range(len(data)):
             out.append(preprocess(to_long(gpu(data[j])), config['cross_dist']))
-        print('9')
-        #
-        # for j, graph in enumerate(out):
-        #     idx = graph['idx']
-        #     store[idx]['graph']['left'] = graph['left']
-        #     store[idx]['graph']['right'] = graph['right']
-    return 0
+
+        for j, graph in enumerate(out):
+            idx = graph['idx']
+            data_tot[idx]['graph']['left'] = graph['left']
+            data_tot[idx]['graph']['right'] = graph['right']
+
+    return data_tot
 
 def update_mem(mem, new, am, fov):
     time_list = mem['TIMESTAMP'].values.tolist()
@@ -266,7 +246,6 @@ def update_mem(mem, new, am, fov):
         init = time.time()
 
         data_tot = [None for x in range(len(full_id))]
-        print('4')
 
         for i in range(len(full_id)):
             data_save = mem.copy()
@@ -298,26 +277,85 @@ def update_mem(mem, new, am, fov):
             data_tot[store["idx"]] = store
             if i > 10:
                 break
-        print('5')
-
-        dataset = PreprocessDataset(data_tot, config, train=True)
-        data_loader = DataLoader(
-            dataset,
-            batch_size=config['batch_size'],
-            num_workers=config['workers'],
-            shuffle=False,
-            collate_fn=from_numpy,
-            pin_memory=True,
-            drop_last=False)
+        print(['a0', time.time()-init])
 
         data = modify(config, data_tot, config["preprocess_train"])
+        print(['a', time.time()-init])
+        data_input = dict()
+        for key in [
+            "city",
+            "orig",
+            "gt_preds",
+            "has_preds",
+            "theta",
+            "rot",
+            "feats",
+            "ctrs",
+            "graph",
+        ]:
+            data_input[key] = []
 
-        # print(data_tot["feats"])
-        output = net(data_tot)
+        for i in range(len(data)):
+            for key in [
+                "city",
+                "orig",
+                "gt_preds",
+                "has_preds",
+                "theta",
+                "rot",
+                "feats",
+                "ctrs",
+                "graph",
+            ]:
+                if key in ['orig', 'gt_preds', 'has_preds','rot', 'feats', 'ctrs']:
+                    data_input[key].append(torch.from_numpy(data[i][key]))
+                elif key in ['city', 'theta']:
+                    data_input[key].append(data[i][key])
+                elif key in ['graph']:
+                    graph_temp = dict()
+                    for keys in [
+                        'ctrs',
+                        'num_nodes',
+                        'feats',
+                        'turn',
+                        'control',
+                        'intersect',
+                        'pre',
+                        'suc',
+                        'lane_idcs',
+                        'pre_pairs',
+                        'suc_pairs',
+                        'left_pairs',
+                        'right_pairs',
+                        'left',
+                        'right'
+                    ]:
+                        if keys in ['num_nodes']:
+                            graph_temp[keys] = data[i][key][keys]
+                        elif keys in ['pre','suc']:
+                            list_temp = []
+                            for j in range(6):
+                                dict_tmp = dict()
+                                dict_tmp['u'] = torch.from_numpy(data[i][key][keys][j]['u'])
+                                dict_tmp['v'] = torch.from_numpy(data[i][key][keys][j]['v'])
+                                list_temp.append(dict_tmp)
+                            graph_temp[keys] = list_temp
+                        elif keys in ['left','right']:
+                            dict_temp = dict()
+                            dict_temp['u'] = torch.from_numpy(data[i][key][keys]['u'])
+                            dict_temp['v'] = torch.from_numpy(data[i][key][keys]['v'])
+                            graph_temp[keys] = dict_temp
+                        else:
+                            graph_temp[keys] = torch.from_numpy(data[i][key][keys])
+                    data_input[key].append(graph_temp)
+        print(['b', time.time()-init])
+
+        output = net(data_input)
 
         print('conversion finished', time.time()-init)
 
-        # new_mem = DataFrame(raw_data)
+        new_mem = mem[mem['TIMESTAMP'] != mem['TIMESTAMP'][0]]
+        new_mem = new_mem.reset_index(drop=True)
     else:
         new_mem = pd.concat([mem, new], ignore_index=True)
 
@@ -400,8 +438,7 @@ def pipe_server():
                         yaw = np.mod(veh_list[0][6] + obj_info['heading_angle'],360)
                         veh_list.append([cur_time, obj_id, 'OTHERS', x, y, 'HMC', yaw])
                     data_temp = pd.DataFrame(veh_list, columns=['TIMESTAMP', 'TRACK_ID', 'OBJECT_TYPE', 'X', 'Y', 'CITY_NAME', 'HEADING'])
-                if data_num > 1000:
-                    print('mem')
+                if data_num > 1500:
                     mem = update_mem(mem, data_temp, am, 100)
 
                 # Send OK Message

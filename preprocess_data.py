@@ -57,7 +57,7 @@ def main():
     config["workers"] = 1
     config['cross_dist'] = 6
     config['cross_angle'] = 0.5 * np.pi
-    config["batch_size"] = 1
+    config["batch_size"] = 3
     config["val_batch_size"] = 1
 
     if args.data == 'HMC':
@@ -268,6 +268,7 @@ def modify(config, data_loader, save):
 
         out = []
         for j in range(len(data)):
+            print(data[j]['pre_pairs'].shape)
             out.append(preprocess(to_long(gpu(data[j])), config['cross_dist']))
 
         for j, graph in enumerate(out):
